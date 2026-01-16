@@ -1,0 +1,29 @@
+###############################################################################
+#                         SERVER CONFIGURATION                                 #
+#                                                                             #
+#  This file controls all server behavior. The server will FAIL TO START     #
+#  if this file is missing or contains invalid values.                        #
+###############################################################################
+
+# Server binding configuration
+server:
+  host: "0.0.0.0"      # Interface to bind to
+  port: 8000           # Port to listen on (1-65535)
+
+# Authentication configuration
+auth:
+  # Path to file containing valid API keys (one per line, blank lines ignored)
+  # Server will FAIL TO START if file is missing or empty
+  api_keys_file: "api_keys.txt"
+
+# Available models - clients can only request models in this list
+# These names are returned by GET /v1/models
+# Server will FAIL TO START if list is empty
+models:
+  - default_workflow
+
+# CORS (Cross-Origin Resource Sharing) configuration
+cors:
+  # Allowed origins - use ["*"] to allow all origins
+  allow_origins:
+    - "*"

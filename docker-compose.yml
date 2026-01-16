@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Mount configuration files (edit these locally)
+      - ./config.yml:/app/config.yml:ro
+      - ./api_keys.txt:/app/api_keys.txt:ro
+    environment:
+      - CONFIG_PATH=/app/config.yml
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

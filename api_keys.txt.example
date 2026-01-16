@@ -1,0 +1,4 @@
+# Example API keys file
+# Copy to api_keys.txt and add your actual keys
+# Generate secure keys: python -c "import secrets; print('sk-' + secrets.token_hex(32))"
+sk-your-secret-key-here
