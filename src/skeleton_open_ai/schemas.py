@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatMessage(BaseModel):
@@ -10,6 +10,8 @@ class ChatMessage(BaseModel):
 
 class ChatCompletionRequest(BaseModel):
     """Request body for chat completion endpoint."""
+
+    model_config = ConfigDict(extra="allow")
 
     model: str
     messages: list[ChatMessage] = Field(min_length=1)

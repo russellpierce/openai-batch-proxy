@@ -65,6 +65,18 @@ class InvalidRequestError(OpenAICompatibleError):
         )
 
 
+class BatchProxyError(OpenAICompatibleError):
+    """Raised for batch proxy-specific errors."""
+
+    def __init__(self, message: str, error_code: str = "batch_proxy_error") -> None:
+        super().__init__(
+            message=message,
+            error_type="invalid_request_error",
+            error_code=error_code,
+            status_code=400,
+        )
+
+
 def _create_error_response(
     status_code: int,
     message: str,

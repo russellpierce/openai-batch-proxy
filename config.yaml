@@ -12,15 +12,25 @@ server:
 
 # Authentication configuration
 auth:
-  # Path to file containing valid API keys (one per line, blank lines ignored)
+  # Path to YAML file containing API key mappings
   # Server will FAIL TO START if file is missing or empty
-  api_keys_file: "api_keys.txt"
+  api_keys_file: "api_keys.yaml"
 
 # Available models - clients can only request models in this list
 # These names are returned by GET /v1/models
 # Server will FAIL TO START if list is empty
 models:
   - default_workflow
+
+# Workflow mode: "workflow" (default) or "batch_proxy"
+# - workflow: synchronous custom AI workflow
+# - batch_proxy: proxies requests through OpenAI Batch API
+workflow: batch_proxy
+
+# Redis configuration (only used in batch_proxy mode)
+redis:
+  url: "redis://skeleton_open_ai-redis-1:6379/0"
+  namespace: "batch_proxy"
 
 # CORS (Cross-Origin Resource Sharing) configuration
 cors:

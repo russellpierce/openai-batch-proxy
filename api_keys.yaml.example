@@ -1,0 +1,13 @@
+# API Keys Configuration
+# Copy to api_keys.yaml and fill in your actual keys.
+#
+# For workflow mode: openai_key can be empty or omitted.
+# For batch_proxy mode: openai_key is required for each key.
+#
+# Generate secure caller keys:
+#   python -c "import secrets; print('sk-' + secrets.token_hex(32))"
+
+keys:
+  - caller_key: "sk-your-caller-key-here"
+    openai_key: "sk-your-openai-key-here"
+    retry_buffer_ttl_seconds: 86400  # optional, default 86400 (24h)

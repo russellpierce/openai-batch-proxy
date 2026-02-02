@@ -1,4 +1,4 @@
-AI Authored, not human audited
+AI Authored, some human auditing of functionality and editing of documentation
 
 # OpenAI-Compatible Chat Completion Server
 

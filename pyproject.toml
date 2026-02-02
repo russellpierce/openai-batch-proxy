@@ -8,6 +8,10 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.10.0",
     "pyyaml>=6.0.0",
+    "openai>=1.0.0",
+    "redis[hiredis]>=5.0.0",
+    "tenacity>=8.0.0",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +23,7 @@ dev = [
     "mypy>=1.13.0",
     "types-PyYAML>=6.0.0",     # Type stubs for PyYAML
     "pre-commit>=4.0.0",
+    "fakeredis>=2.0.0",
 ]
 
 [build-system]
@@ -72,6 +77,10 @@ files = ["src/skeleton_open_ai", "tests"]
 
 [[tool.mypy.overrides]]
 module = "uvicorn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "fakeredis.*"
 ignore_missing_imports = true
 
 # Pytest configuration

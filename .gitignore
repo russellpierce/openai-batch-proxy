@@ -21,6 +21,7 @@ uv.lock
 
 # Secrets - DO NOT COMMIT REAL KEYS
 api_keys.txt
+api_keys.yaml
 
 # Logs
 *.log
@@ -34,3 +35,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# AI Cruft
+docs/

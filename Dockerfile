@@ -18,10 +18,10 @@ RUN uv sync --frozen --no-dev
 COPY src/ ./src/
 
 # Default config location (mount your own at runtime)
-COPY config.yml ./
-COPY api_keys.txt ./
+COPY config.yaml ./
+COPY api_keys.yaml.example ./
 
-# Expose default port (override via config.yml or docker-compose)
+# Expose default port (override via config.yaml or docker-compose)
 EXPOSE 8000
 
 # Run the application

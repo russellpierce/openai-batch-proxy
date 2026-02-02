@@ -1,7 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -28,6 +28,13 @@ class CorsConfig(BaseModel):
     allow_origins: list[str] = Field(default_factory=lambda: ["*"])
 
 
+class RedisConfig(BaseModel):
+    """Redis connection configuration."""
+
+    url: str = "redis://localhost:6379/0"
+    namespace: str = "batch_proxy"
+
+
 class AppConfig(BaseModel):
     """Complete application configuration."""
 
@@ -35,6 +42,8 @@ class AppConfig(BaseModel):
     auth: AuthConfig
     cors: CorsConfig = Field(default_factory=CorsConfig)
     models: list[str] = Field(min_length=1)
+    workflow: Literal["workflow", "batch_proxy"] = "workflow"
+    redis: RedisConfig = Field(default_factory=RedisConfig)
 
     @field_validator("models")
     @classmethod
