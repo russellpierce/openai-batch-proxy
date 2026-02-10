@@ -1,6 +1,5 @@
 """Tests for the dispatch router."""
 
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -14,7 +13,7 @@ from openai_batch_proxy.override_proxy.config import (
     OverridesConfig,
     RouteConfig,
 )
-from openai_batch_proxy.routes_dispatch import ModeRequest, create_dispatch_router
+from openai_batch_proxy.routes_dispatch import ModeHandler, ModeRequest, create_dispatch_router
 
 
 @pytest.fixture
@@ -48,7 +47,7 @@ def mock_batch_proxy_handler() -> AsyncMock:
     return handler
 
 
-def auth_dependency(api_key: str = "sk-test-key") -> str:
+def auth_dependency(_api_key: str = "sk-test-key") -> str:
     """Simple auth dependency for testing."""
     return "sk-test-key"
 
@@ -66,7 +65,7 @@ class TestRouteMatching:
         routes = {
             "/v1/chat/completions": RouteConfig(mode="batch_proxy"),
         }
-        mode_handlers = {
+        mode_handlers: dict[str, ModeHandler] = {
             "passthrough": mock_passthrough_handler,
             "batch_proxy": mock_batch_proxy_handler,
         }
@@ -96,7 +95,7 @@ class TestRouteMatching:
         routes = {
             "/v1/chat/completions": RouteConfig(mode="batch_proxy"),
         }
-        mode_handlers = {
+        mode_handlers: dict[str, ModeHandler] = {
             "passthrough": mock_passthrough_handler,
             "batch_proxy": mock_batch_proxy_handler,
         }
@@ -144,7 +143,7 @@ class TestOverrideApplication:
                 ),
             ),
         }
-        mode_handlers = {"passthrough": mock_handler}
+        mode_handlers: dict[str, ModeHandler] = {"passthrough": mock_handler}
 
         app = FastAPI()
         router = create_dispatch_router(routes, mode_handlers, test_key_lookup, auth_dependency)
@@ -191,7 +190,7 @@ class TestOverrideApplication:
                 ),
             ),
         }
-        mode_handlers = {"passthrough": mock_handler}
+        mode_handlers: dict[str, ModeHandler] = {"passthrough": mock_handler}
 
         app = FastAPI()
         router = create_dispatch_router(routes, mode_handlers, test_key_lookup, auth_dependency)
@@ -226,8 +225,8 @@ class TestModeRequestData:
         mock_handler = AsyncMock()
         mock_handler.handle = capture_handler
 
-        routes = {}
-        mode_handlers = {"passthrough": mock_handler}
+        routes: dict[str, RouteConfig] = {}
+        mode_handlers: dict[str, ModeHandler] = {"passthrough": mock_handler}
 
         app = FastAPI()
         router = create_dispatch_router(routes, mode_handlers, test_key_lookup, auth_dependency)
@@ -264,7 +263,7 @@ class TestModeRequestData:
         routes = {
             "/v1/chat/completions": RouteConfig(mode="passthrough"),
         }
-        mode_handlers = {"passthrough": mock_handler}
+        mode_handlers: dict[str, ModeHandler] = {"passthrough": mock_handler}
 
         app = FastAPI()
         router = create_dispatch_router(routes, mode_handlers, test_key_lookup, auth_dependency)
@@ -300,8 +299,8 @@ class TestNonJsonBody:
         mock_handler = AsyncMock()
         mock_handler.handle = capture_handler
 
-        routes = {}
-        mode_handlers = {"passthrough": mock_handler}
+        routes: dict[str, RouteConfig] = {}
+        mode_handlers: dict[str, ModeHandler] = {"passthrough": mock_handler}
 
         app = FastAPI()
         router = create_dispatch_router(routes, mode_handlers, test_key_lookup, auth_dependency)

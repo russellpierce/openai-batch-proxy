@@ -31,9 +31,7 @@ def _apply_field_overrides(
         if nested and "." in key:
             _set_nested(target, key.split("."), field)
         else:
-            if field.mode == "force":
-                target[key] = field.value
-            elif key not in target:
+            if field.mode == "force" or key not in target:
                 target[key] = field.value
 
 
@@ -48,7 +46,5 @@ def _set_nested(
             target[part] = {}
         target = target[part]
     leaf = parts[-1]
-    if field.mode == "force":
-        target[leaf] = field.value
-    elif leaf not in target:
+    if field.mode == "force" or leaf not in target:
         target[leaf] = field.value

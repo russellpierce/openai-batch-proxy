@@ -59,6 +59,7 @@ register_error_handlers(app)
 modes_needed: set[str] = {r.mode for r in config.routes.values()}
 
 mode_handlers: dict[str, ModeHandler] = {}
+app.state.external_redis_client = None
 
 for mode_name in modes_needed:
     # Import the mode's sub-package
@@ -85,6 +86,10 @@ for mode_name in modes_needed:
         key_lookup=key_lookup,
         redis_config=config.redis,
     )
+
+    # If this mode's provider has an external Redis client, store it for health checks
+    if hasattr(provider, "external_redis_client") and provider.external_redis_client is not None:
+        app.state.external_redis_client = provider.external_redis_client
 
 # Always register passthrough as the fallback for unmatched paths
 if "passthrough" not in mode_handlers:

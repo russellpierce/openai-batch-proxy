@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 from collections.abc import Callable
@@ -73,10 +74,8 @@ def create_dispatch_router(
         raw_body = await request.body()
         body: dict[str, Any] = {}
         if raw_body:
-            try:
+            with contextlib.suppress(json.JSONDecodeError, UnicodeDecodeError):
                 body = json.loads(raw_body)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                pass  # non-JSON body passes through unmodified
 
         headers = dict(request.headers)
         query = dict(request.query_params)

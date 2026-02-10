@@ -37,9 +37,9 @@ routes:
           mode: "default"
 
 # Redis configuration (only used when batch_proxy routes exist)
-redis:
-  url: "redis://openai_batch_proxy-redis-1:6379/0"
-  namespace: "batch_proxy"
+#redis:
+#  url: "redis://openai_batch_proxy-redis-1:6379/0"
+#  namespace: "batch_proxy"
 
 # CORS (Cross-Origin Resource Sharing) configuration
 cors:

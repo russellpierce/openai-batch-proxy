@@ -35,5 +35,5 @@ class Provider:
 
     supported_paths: frozenset[str] | None = None  # works on any path
 
-    def create_handler(self, **kwargs: Any) -> PassthroughHandler:
+    def create_handler(self, **kwargs: Any) -> PassthroughHandler:  # noqa: ARG002 — accepts kwargs for uniform caller interface across providers
         return PassthroughHandler()

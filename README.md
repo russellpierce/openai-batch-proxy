@@ -15,7 +15,7 @@ This proxy sits between your application and OpenAI. Your application sends norm
 Each route in `config.yaml` is assigned a mode:
 
 - **passthrough** — Forwards requests directly to OpenAI. The default for any route not explicitly configured.
-- **batch_proxy** — Translates synchronous requests into Batch API calls. Requires Redis for state management. Falls back to a direct API call if batch submission fails.
+- **batch_proxy** — Translates synchronous requests into Batch API calls. Uses an embedded store by default, or external Redis for multi-instance deployments. Falls back to a direct API call if batch submission fails.
 
 ## Overrides
 
@@ -53,6 +53,34 @@ keys:
 
 This keeps real OpenAI keys off client machines and lets you rotate or revoke access per caller.
 
+## Storage backend
+
+The batch_proxy mode needs a key-value store for retry buffering and batch tracking.
+
+- **No `redis:` in config.yaml** — An embedded [redislite](https://github.com/yahoo/redislite) instance starts automatically. No external dependencies. Best for single-instance deployments.
+- **`redis:` section present** — Connects to an external Redis server. Required when running multiple proxy instances that need to share state (e.g., behind a load balancer).
+
+```yaml
+# Single instance (no redis section needed):
+server:
+  host: "0.0.0.0"
+  port: 8000
+auth:
+  api_keys_file: "api_keys.yaml"
+routes:
+  /v1/chat/completions:
+    mode: batch_proxy
+
+# Multi-instance (add redis section):
+redis:
+  url: "redis://redis-host:6379/0"
+  namespace: "batch_proxy"
+```
+
+When Redis is configured, the `/health` endpoint verifies connectivity and returns `503` if Redis is unreachable.
+
+> **Note:** The embedded redislite backend communicates via unix sockets and only works on *nix systems (Linux, macOS). On Windows, configure an external Redis server via the `redis:` section.
+
 ## Quick start
 
 ### Docker Compose
@@ -72,7 +100,7 @@ cp api_keys.yaml.example api_keys.yaml
 uv run uvicorn openai_batch_proxy.main:app --reload
 ```
 
-Redis must be running separately for batch_proxy mode.
+Redis is optional — omit the `redis:` section from config.yaml to use the embedded store.
 
 ## Usage
 

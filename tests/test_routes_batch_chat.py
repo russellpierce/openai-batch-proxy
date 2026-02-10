@@ -1,7 +1,7 @@
 """Tests for batch_proxy mode handler via dispatch router."""
 
 from typing import Final
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
@@ -12,7 +12,7 @@ from openai_batch_proxy.errors import register_error_handlers
 from openai_batch_proxy.key_config import ApiKeyEntry
 from openai_batch_proxy.modes.batch_proxy.handler import BatchProxyHandler
 from openai_batch_proxy.override_proxy.config import RouteConfig
-from openai_batch_proxy.routes_dispatch import create_dispatch_router
+from openai_batch_proxy.routes_dispatch import ModeHandler, create_dispatch_router
 
 TEST_CALLER_KEY: Final = "sk-test-caller"
 TEST_OPENAI_KEY: Final = "sk-openai-test"
@@ -68,7 +68,7 @@ def batch_app(key_lookup: dict[str, ApiKeyEntry]) -> FastAPI:
     routes = {
         "/v1/chat/completions": RouteConfig(mode="batch_proxy"),
     }
-    mode_handlers = {
+    mode_handlers: dict[str, ModeHandler] = {
         "batch_proxy": batch_proxy_handler,
         "passthrough": mock_passthrough,
     }

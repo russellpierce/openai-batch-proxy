@@ -1,6 +1,7 @@
 """Tests for the override engine."""
 
-import pytest
+
+from typing import Any
 
 from openai_batch_proxy.override_proxy.config import OverrideField, OverridesConfig
 from openai_batch_proxy.override_proxy.engine import apply_overrides
@@ -93,7 +94,7 @@ class TestDotNotation:
         overrides = OverridesConfig(
             body={"a.b.c.d": OverrideField(value="deep", mode="force")}
         )
-        body = {}
+        body: dict[str, Any] = {}
 
         new_body, _, _ = apply_overrides(overrides, body, {}, {})
 

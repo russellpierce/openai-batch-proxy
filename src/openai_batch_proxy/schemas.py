@@ -73,3 +73,4 @@ class HealthResponse(BaseModel):
     """Response body for health check endpoint."""
 
     status: str = "healthy"
+    reason: str | None = None

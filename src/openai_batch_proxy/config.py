@@ -44,7 +44,7 @@ class AppConfig(BaseModel):
     auth: AuthConfig
     cors: CorsConfig = Field(default_factory=CorsConfig)
     routes: dict[str, RouteConfig] = Field(default_factory=dict)
-    redis: RedisConfig = Field(default_factory=RedisConfig)
+    redis: RedisConfig | None = None
 
 
 def load_config(config_path: str | Path) -> AppConfig:

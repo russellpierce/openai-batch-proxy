@@ -144,4 +144,4 @@ def register_error_handlers(app: FastAPI) -> None:
     """Register all error handlers with the FastAPI application."""
     app.add_exception_handler(OpenAICompatibleError, openai_compatible_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
-    app.add_exception_handler(Exception, unhandled_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(Exception, unhandled_error_handler)
