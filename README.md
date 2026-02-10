@@ -1,14 +1,25 @@
 # openai-batch-proxy
 
-An OpenAI API proxy that lets existing clients use the [Batch API](https://platform.openai.com/docs/guides/batch) without code changes.
+An OpenAI API proxy that lets existing clients use the [Batch API](https://platform.openai.com/docs/guides/batch) without code changes.  This covers the following endpoints:
+
+* /v1/chat/completions
+* /v1/completions
+* /v1/embeddings
+* /v1/moderations
+* /v1/responses
 
 ## The problem
 
-OpenAI's Batch API offers a 50% cost reduction, but it requires a fundamentally different integration pattern: upload a JSONL file, poll for completion, then download results. Any application built against the standard `/v1/chat/completions` endpoint cannot use it without significant rework.
+OpenAI's Batch API offers a 50% cost reduction, but it requires a fundamentally different integration pattern: upload a JSONL file, poll for completion, then download results. Any application built against standard `/v1/chat/completions` endpoints cannot use it without significant rework.
 
 This proxy sits between your application and OpenAI. Your application sends normal synchronous requests; the proxy translates them into batch operations behind the scenes, polls for results, and returns them as if the call were synchronous. The client never knows the difference.
 
 > **Warning:** This project has not been used in production. It is quite possibly ill-suited for your workload. This pattern results in very long running API requests, any number of reconfigurations may be required for your client and the proxy to hold a connection open as long as is required to get a batch response (batch jobs can take minutes to hours). The disconnect/retry logic is largely untested under real conditions, and the failure modes are not well understood. The proxy does not manage the files it uploads or downloads in the batch request cycle ([Issue](https://github.com/russellpierce/openai-batch-proxy/issues/1)). Try it for yourself and create issues / PRs to improve.
+
+See also:
+* [llmbatching](https://github.com/miko-ai-org/llmbatching) - Use if you have control over your callers.  This proxy submits to batch and yields a 422 until the batch job is done.  The caller has to reissue requests in response to the 422 to get the result. Requires a database.
+* [llm-proxy](https://github.com/xdrudis/llm-proxy) - Buffers and groups requests for batch processing.  Includes stats monitoring.  Covers only the /v1/chat/completions and /v1/embeddings endpoints.  Does not provide a graceful fallback if a batch times out.
+* [Priority Processing](https://developers.openai.com/api/docs/guides/priority-processing) - Open AI has a `service_tier` argument for some endpoints.  The 'flex' option for that argument provides batch savings!  However, it only supports some models and some endpoints (fewer than are supported via the Batch API).
 
 ## Modes
 
@@ -25,14 +36,12 @@ Routes can force or default request parameters before they reach OpenAI.
 routes:
   /v1/chat/completions:
     mode: batch_proxy
+  /v1/responses:
     overrides:
       body:
         service_tier:
           value: "flex"
           mode: "force"    # always set, ignoring client value
-  /v1/responses:
-    overrides:
-      body:
         reasoning.effort:
           value: "low"
           mode: "default"  # set only if client didn't send one
