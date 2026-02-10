@@ -1,31 +1,36 @@
 ###############################################################################
-#                         SERVER CONFIGURATION                                 #
+#                         SERVER CONFIGURATION                                #
 #                                                                             #
-#  This file controls all server behavior. The server will FAIL TO START     #
+#  This file controls all server behavior. The server will FAIL TO START      #
 #  if this file is missing or contains invalid values.                        #
 ###############################################################################
 
 # Server binding configuration
 server:
-  host: "0.0.0.0"      # Interface to bind to
-  port: 8000           # Port to listen on (1-65535)
+  host: "127.0.0.1"      # Interface to bind to ("0.0.0.0" for all interfaces)
+  port: 8000              # Port to listen on (1-65535)
 
 # Authentication configuration
 auth:
-  # Path to YAML file containing API key mappings
-  # Server will FAIL TO START if file is missing or empty
+  # Path to YAML file containing API key mappings (caller_key → openai_key).
+  # Server will FAIL TO START if file is missing or empty.
   api_keys_file: "api_keys.yaml"
 
-# Route configuration - per-path mode and override settings
-# Unmatched paths default to passthrough mode with no overrides
+# Route configuration — per-path mode and override settings.
+# Each route can specify a mode and optional parameter overrides.
+#
+# Modes:
+#   batch_proxy  — Translates synchronous requests into OpenAI Batch API calls.
+#                  Results are polled and returned as if the call were synchronous.
+#   passthrough  — Forwards requests directly to OpenAI (default for unconfigured routes).
+#
+# Overrides:
+#   force    — Always set this value, ignoring whatever the client sent.
+#   default  — Set only if the client didn't provide a value.
+#   Dot notation (e.g. "reasoning.effort") is supported for nested body fields.
 routes:
   /v1/chat/completions:
     mode: batch_proxy
-    overrides:
-      body:
-        service_tier:
-          value: "flex"
-          mode: "force"
   /v1/responses:
     overrides:
       body:
@@ -36,13 +41,23 @@ routes:
           value: "low"
           mode: "default"
 
-# Redis configuration (only used when batch_proxy routes exist)
+# Redis configuration — controls the storage backend for batch_proxy mode.
+#
+# OMIT this section entirely to use an embedded redislite instance (no external
+# dependencies). Best for single-instance deployments.
+#
+# INCLUDE this section to connect to an external Redis server. Required when
+# running multiple proxy instances behind a load balancer so they share retry
+# buffer and batch tracking state.
+#
+# Note: The embedded redislite backend uses unix sockets and only works on
+# *nix systems (Linux, macOS). On Windows, configure an external Redis server.
+#
 #redis:
-#  url: "redis://openai_batch_proxy-redis-1:6379/0"
+#  url: "redis://openai_batch_proxy-redis-1:6379/0"  # Docker Compose service name
 #  namespace: "batch_proxy"
 
 # CORS (Cross-Origin Resource Sharing) configuration
 cors:
-  # Allowed origins - use ["*"] to allow all origins
   allow_origins:
     - "*"
