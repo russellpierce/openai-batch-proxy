@@ -8,7 +8,7 @@ OpenAI's Batch API offers a 50% cost reduction, but it requires a fundamentally 
 
 This proxy sits between your application and OpenAI. Your application sends normal synchronous requests; the proxy translates them into batch operations behind the scenes, polls for results, and returns them as if the call were synchronous. The client never knows the difference.
 
-> **Warning:** This project has not been used in production. It is quite possibly ill-suited for your workload. This pattern results in very long running API requests, any number of reconfigurations may be required for your client and the proxy to hold a connection open as long as is required to get a batch response (batch jobs can take minutes to hours). The disconnect/retry logic is largely untested under real conditions, and the failure modes are not well understood. Try it for yourself and create issues / PRs to improve.
+> **Warning:** This project has not been used in production. It is quite possibly ill-suited for your workload. This pattern results in very long running API requests, any number of reconfigurations may be required for your client and the proxy to hold a connection open as long as is required to get a batch response (batch jobs can take minutes to hours). The disconnect/retry logic is largely untested under real conditions, and the failure modes are not well understood. The proxy does not manage the files it uploads or downloads in the batch request cycle ([Issue](https://github.com/russellpierce/openai-batch-proxy/issues/1)). Try it for yourself and create issues / PRs to improve.
 
 ## Modes
 
