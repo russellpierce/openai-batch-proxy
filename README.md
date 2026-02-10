@@ -1,4 +1,4 @@
-# openai_batch_proxy
+# openai-batch-proxy
 
 An OpenAI API proxy that lets existing clients use the [Batch API](https://platform.openai.com/docs/guides/batch) without code changes.
 
