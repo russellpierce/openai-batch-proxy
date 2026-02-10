@@ -3,7 +3,7 @@ from typing import Final
 
 from fastapi import APIRouter
 
-from skeleton_open_ai.schemas import HealthResponse
+from openai_batch_proxy.schemas import HealthResponse
 
 logger: Final = logging.getLogger(__name__)
 

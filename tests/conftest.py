@@ -5,21 +5,12 @@ from typing import Final
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.testclient import TestClient
 
-from skeleton_open_ai.auth import create_auth_dependency, load_api_keys
-from skeleton_open_ai.config import AppConfig, AuthConfig, CorsConfig, RedisConfig, ServerConfig
-from skeleton_open_ai.errors import register_error_handlers
-from skeleton_open_ai.key_config import ApiKeyEntry, ApiKeysConfig, build_key_lookup
-from skeleton_open_ai.routes_chat import create_chat_router
-from skeleton_open_ai.routes_health import router as health_router
-from skeleton_open_ai.routes_models import create_models_router
+from openai_batch_proxy.config import AppConfig, AuthConfig, CorsConfig, RedisConfig, ServerConfig
+from openai_batch_proxy.key_config import ApiKeyEntry, ApiKeysConfig, build_key_lookup
 
 TEST_API_KEY: Final = "sk-test-key-12345"
 TEST_OPENAI_KEY: Final = "sk-openai-test-key"
-TEST_MODELS: Final = ["test-model", "default_workflow"]
 
 
 @pytest.fixture
@@ -83,41 +74,8 @@ def test_config(api_keys_yaml_file: Path) -> AppConfig:
         server=ServerConfig(host="127.0.0.1", port=8000),
         auth=AuthConfig(api_keys_file=str(api_keys_yaml_file)),
         cors=CorsConfig(allow_origins=["*"]),
-        models=list(TEST_MODELS),
         redis=RedisConfig(),
     )
-
-
-@pytest.fixture
-def app(api_keys_file: Path) -> FastAPI:
-    """Create test FastAPI application (workflow mode)."""
-    test_app = FastAPI()
-
-    test_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    register_error_handlers(test_app)
-
-    api_keys = load_api_keys(api_keys_file)
-    auth_dependency = create_auth_dependency(api_keys)
-
-    test_app.include_router(health_router)
-    test_app.include_router(create_models_router(list(TEST_MODELS), auth_dependency))
-    test_app.include_router(create_chat_router(list(TEST_MODELS), auth_dependency))
-
-    return test_app
-
-
-@pytest.fixture
-def client(app: FastAPI) -> Generator[TestClient]:
-    """Create test client."""
-    with TestClient(app) as c:
-        yield c
 
 
 @pytest.fixture

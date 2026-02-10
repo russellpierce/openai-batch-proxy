@@ -38,3 +38,6 @@ Thumbs.db
 
 # AI Cruft
 docs/
+.claude
+*.bak
+TODO.md

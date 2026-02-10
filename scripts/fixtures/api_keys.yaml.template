@@ -1,0 +1,3 @@
+keys:
+  - caller_key: "sk-your-caller-key-here"
+    openai_key: "__OPENAI_API_KEY__"

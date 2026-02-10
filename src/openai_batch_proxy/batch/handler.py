@@ -5,11 +5,11 @@ import logging
 import uuid
 from typing import Final
 
-from skeleton_open_ai.batch.hasher import hash_request
-from skeleton_open_ai.batch.openai_client import BatchFailedError, OpenAIBatchClient
-from skeleton_open_ai.batch.redis_store import RedisStore
-from skeleton_open_ai.errors import BatchProxyError
-from skeleton_open_ai.key_config import ApiKeyEntry
+from openai_batch_proxy.batch.hasher import hash_request
+from openai_batch_proxy.batch.openai_client import BatchFailedError, OpenAIBatchClient
+from openai_batch_proxy.batch.redis_store import RedisStore
+from openai_batch_proxy.errors import BatchProxyError
+from openai_batch_proxy.key_config import ApiKeyEntry
 
 logger: Final = logging.getLogger(__name__)
 
@@ -66,6 +66,7 @@ class BatchHandler:
             response: dict[str, object] = json.loads(cached)
             await self._redis.delete_retry_buffer(caller_key, request_hash)
             return response
+        logger.debug("Step 1/4 retry-buffer: miss  hash=%s", request_hash[:12])
 
         # 2. Validate model supports batch
         model = str(request_body.get("model", ""))
@@ -74,6 +75,7 @@ class BatchHandler:
                 f"Model '{model}' does not support the Batch API. "
                 "Use a supported model or switch to workflow mode."
             )
+        logger.debug("Step 2/4 model-check: %s OK", model)
 
         # 3. Submit batch
         request_id = uuid.uuid4().hex
@@ -82,10 +84,13 @@ class BatchHandler:
         except Exception:
             logger.warning("Batch submission failed, falling back to sync", exc_info=True)
             return await client.sync_call(request_body)
+        logger.info("Step 3/4 batch-submitted: batch_id=%s  endpoint=%s  model=%s",
+                     batch_id, endpoint, model)
 
         await self._redis.store_batch_id(request_id, batch_id)
 
         # 4. Poll with disconnect detection
+        logger.debug("Step 4/4 polling batch_id=%s ...", batch_id)
         try:
             poll_task = asyncio.create_task(client.poll_batch(batch_id))
             disconnect_task = asyncio.create_task(disconnect_event.wait())

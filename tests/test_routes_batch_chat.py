@@ -1,16 +1,18 @@
+"""Tests for batch_proxy mode handler via dispatch router."""
+
 from typing import Final
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from skeleton_open_ai.auth import create_auth_dependency
-from skeleton_open_ai.batch.handler import BatchHandler
-from skeleton_open_ai.batch.redis_store import RedisStore
-from skeleton_open_ai.batch.routes_chat import create_batch_chat_router
-from skeleton_open_ai.errors import register_error_handlers
-from skeleton_open_ai.key_config import ApiKeyEntry
+from openai_batch_proxy.auth import create_auth_dependency
+from openai_batch_proxy.errors import register_error_handlers
+from openai_batch_proxy.key_config import ApiKeyEntry
+from openai_batch_proxy.modes.batch_proxy.handler import BatchProxyHandler
+from openai_batch_proxy.override_proxy.config import RouteConfig
+from openai_batch_proxy.routes_dispatch import create_dispatch_router
 
 TEST_CALLER_KEY: Final = "sk-test-caller"
 TEST_OPENAI_KEY: Final = "sk-openai-test"
@@ -31,27 +33,48 @@ TEST_RESPONSE: Final = {
 
 
 @pytest.fixture
-def batch_app() -> FastAPI:
-    """Create a FastAPI app with batch chat router."""
-    app = FastAPI()
-    register_error_handlers(app)
-
-    key_lookup = {
+def key_lookup() -> dict[str, ApiKeyEntry]:
+    """Create test key lookup."""
+    return {
         TEST_CALLER_KEY: ApiKeyEntry(
             caller_key=TEST_CALLER_KEY,
             openai_key=TEST_OPENAI_KEY,
         )
     }
+
+
+@pytest.fixture
+def batch_app(key_lookup: dict[str, ApiKeyEntry]) -> FastAPI:
+    """Create a FastAPI app with batch_proxy mode via dispatch router."""
+    app = FastAPI()
+    register_error_handlers(app)
+
     auth_dep = create_auth_dependency(frozenset(key_lookup.keys()))
 
-    mock_redis = AsyncMock(spec=RedisStore)
-    mock_redis.delete_retry_buffer = AsyncMock()
+    # Create mock batch handler
+    mock_batch_handler = AsyncMock()
+    mock_batch_handler.handle_request = AsyncMock(return_value=dict(TEST_RESPONSE))
 
-    mock_handler = AsyncMock(spec=BatchHandler)
-    mock_handler.handle_request = AsyncMock(return_value=dict(TEST_RESPONSE))
+    mock_redis_store = AsyncMock()
+    mock_redis_store.delete_retry_buffer = AsyncMock()
 
-    app.include_router(create_batch_chat_router(mock_handler, mock_redis, auth_dep))
-    app.state.mock_handler = mock_handler
+    # Create the batch proxy handler with mocks
+    batch_proxy_handler = BatchProxyHandler(mock_batch_handler, mock_redis_store)
+
+    # Mock passthrough handler for other paths
+    mock_passthrough = AsyncMock()
+    mock_passthrough.handle = AsyncMock()
+
+    routes = {
+        "/v1/chat/completions": RouteConfig(mode="batch_proxy"),
+    }
+    mode_handlers = {
+        "batch_proxy": batch_proxy_handler,
+        "passthrough": mock_passthrough,
+    }
+
+    app.include_router(create_dispatch_router(routes, mode_handlers, key_lookup, auth_dep))
+    app.state.mock_batch_handler = mock_batch_handler
     return app
 
 
@@ -90,16 +113,6 @@ def test_invalid_auth(batch_client: TestClient) -> None:
         headers={"Authorization": "Bearer sk-wrong-key"},
     )
     assert resp.status_code == 401
-
-
-def test_empty_messages_rejected(batch_client: TestClient) -> None:
-    """Empty messages list returns 400."""
-    resp = batch_client.post(
-        "/v1/chat/completions",
-        json={"model": "gpt-4o-mini", "messages": []},
-        headers={"Authorization": f"Bearer {TEST_CALLER_KEY}"},
-    )
-    assert resp.status_code == 400
 
 
 def test_extra_fields_accepted(batch_client: TestClient) -> None:

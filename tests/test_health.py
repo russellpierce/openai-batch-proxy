@@ -1,4 +1,16 @@
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+from openai_batch_proxy.routes_health import router as health_router
+
+
+@pytest.fixture
+def client() -> TestClient:
+    """Create a minimal app with just the health router."""
+    app = FastAPI()
+    app.include_router(health_router)
+    return TestClient(app)
 
 
 def test_health_check(client: TestClient) -> None:

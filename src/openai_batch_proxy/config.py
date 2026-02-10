@@ -1,10 +1,12 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Final, Literal
+from typing import Final
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
+
+from openai_batch_proxy.override_proxy.config import RouteConfig
 
 logger: Final = logging.getLogger(__name__)
 
@@ -41,16 +43,8 @@ class AppConfig(BaseModel):
     server: ServerConfig = Field(default_factory=ServerConfig)
     auth: AuthConfig
     cors: CorsConfig = Field(default_factory=CorsConfig)
-    models: list[str] = Field(min_length=1)
-    workflow: Literal["workflow", "batch_proxy"] = "workflow"
+    routes: dict[str, RouteConfig] = Field(default_factory=dict)
     redis: RedisConfig = Field(default_factory=RedisConfig)
-
-    @field_validator("models")
-    @classmethod
-    def models_not_empty(cls, v: list[str]) -> list[str]:
-        if not v:
-            raise ValueError("models list cannot be empty")
-        return v
 
 
 def load_config(config_path: str | Path) -> AppConfig:
@@ -78,6 +72,5 @@ def load_config(config_path: str | Path) -> AppConfig:
     config = AppConfig(**raw_config)
 
     logger.info(f"Configuration loaded: host={config.server.host}, port={config.server.port}")
-    logger.info(f"Available models: {config.models}")
 
     return config

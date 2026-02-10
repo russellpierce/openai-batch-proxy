@@ -1,1 +1,1 @@
-"""Tests for skeleton_open_ai."""
+"""Tests for openai_batch_proxy."""

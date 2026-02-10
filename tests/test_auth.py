@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from skeleton_open_ai.auth import load_api_keys
+from openai_batch_proxy.auth import load_api_keys
 
 
 def test_load_api_keys_success() -> None:

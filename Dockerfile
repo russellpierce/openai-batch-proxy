@@ -25,4 +25,4 @@ COPY api_keys.yaml.example ./
 EXPOSE 8000
 
 # Run the application
-CMD ["uv", "run", "uvicorn", "skeleton_open_ai.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "openai_batch_proxy.main:app", "--host", "0.0.0.0", "--port", "8000"]

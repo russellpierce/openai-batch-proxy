@@ -1,4 +1,4 @@
-from skeleton_open_ai.batch.hasher import hash_request
+from openai_batch_proxy.batch.hasher import hash_request
 
 
 def test_same_request_same_hash() -> None:

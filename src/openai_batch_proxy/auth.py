@@ -6,7 +6,7 @@ from typing import Final
 
 from fastapi import Request
 
-from skeleton_open_ai.errors import AuthenticationError
+from openai_batch_proxy.errors import AuthenticationError
 
 logger: Final = logging.getLogger(__name__)
 

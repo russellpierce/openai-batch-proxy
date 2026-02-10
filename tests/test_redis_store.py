@@ -1,7 +1,7 @@
 import fakeredis.aioredis
 import pytest
 
-from skeleton_open_ai.batch.redis_store import RedisStore
+from openai_batch_proxy.batch.redis_store import RedisStore
 
 
 @pytest.fixture

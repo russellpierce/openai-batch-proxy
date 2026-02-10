@@ -16,20 +16,29 @@ auth:
   # Server will FAIL TO START if file is missing or empty
   api_keys_file: "api_keys.yaml"
 
-# Available models - clients can only request models in this list
-# These names are returned by GET /v1/models
-# Server will FAIL TO START if list is empty
-models:
-  - default_workflow
+# Route configuration - per-path mode and override settings
+# Unmatched paths default to passthrough mode with no overrides
+routes:
+  /v1/chat/completions:
+    mode: batch_proxy
+    overrides:
+      body:
+        service_tier:
+          value: "flex"
+          mode: "force"
+  /v1/responses:
+    overrides:
+      body:
+        service_tier:
+          value: "flex"
+          mode: "force"
+        reasoning.effort:
+          value: "low"
+          mode: "default"
 
-# Workflow mode: "workflow" (default) or "batch_proxy"
-# - workflow: synchronous custom AI workflow
-# - batch_proxy: proxies requests through OpenAI Batch API
-workflow: batch_proxy
-
-# Redis configuration (only used in batch_proxy mode)
+# Redis configuration (only used when batch_proxy routes exist)
 redis:
-  url: "redis://skeleton_open_ai-redis-1:6379/0"
+  url: "redis://openai_batch_proxy-redis-1:6379/0"
   namespace: "batch_proxy"
 
 # CORS (Cross-Origin Resource Sharing) configuration

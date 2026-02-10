@@ -1,0 +1,20 @@
+server:
+  host: "0.0.0.0"
+  port: 8000
+auth:
+  api_keys_file: "api_keys.yaml"
+routes:
+  /v1/chat/completions:
+    mode: batch_proxy
+  /v1/responses:
+    mode: passthrough
+    overrides:
+      body:
+        reasoning.effort:
+          value: "low"
+          mode: "default"
+redis:
+  url: "redis://openai_batch_proxy-redis-1:6379/0"
+  namespace: "batch_proxy"
+cors:
+  allow_origins: ["*"]

@@ -1,167 +1,118 @@
-AI Authored, some human auditing of functionality and editing of documentation
+# openai_batch_proxy
 
-# OpenAI-Compatible Chat Completion Server
+An OpenAI API proxy that lets existing clients use the [Batch API](https://platform.openai.com/docs/guides/batch) without code changes.
 
-A FastAPI server that exposes an OpenAI-compatible `/v1/chat/completions` endpoint, routing requests to a customizable workflow function.
+## The problem
 
-## Features
+OpenAI's Batch API offers a 50% cost reduction, but it requires a fundamentally different integration pattern: upload a JSONL file, poll for completion, then download results. Any application built against the standard `/v1/chat/completions` endpoint cannot use it without significant rework.
 
-- OpenAI-compatible API endpoints (`/v1/chat/completions`, `/v1/models`)
-- API key authentication
-- Configurable via YAML
-- Docker deployment ready
-- Pre-commit hooks for code quality
+This proxy sits between your application and OpenAI. Your application sends normal synchronous requests; the proxy translates them into batch operations behind the scenes, polls for results, and returns them as if the call were synchronous. The client never knows the difference.
 
-## Quick Start
+> **Warning:** This project has not been used in production. It is quite possibly ill-suited for your workload. This pattern results in very long running API requests, any number of reconfigurations may be required for your client and the proxy to hold a connection open as long as is required to get a batch response (batch jobs can take minutes to hours). The disconnect/retry logic is largely untested under real conditions, and the failure modes are not well understood. Try it for yourself and create issues / PRs to improve.
 
-### With Docker Compose
+## Modes
+
+Each route in `config.yaml` is assigned a mode:
+
+- **passthrough** — Forwards requests directly to OpenAI. The default for any route not explicitly configured.
+- **batch_proxy** — Translates synchronous requests into Batch API calls. Requires Redis for state management. Falls back to a direct API call if batch submission fails.
+
+## Overrides
+
+Routes can force or default request parameters before they reach OpenAI.
+
+```yaml
+routes:
+  /v1/chat/completions:
+    mode: batch_proxy
+    overrides:
+      body:
+        service_tier:
+          value: "flex"
+          mode: "force"    # always set, ignoring client value
+  /v1/responses:
+    overrides:
+      body:
+        reasoning.effort:
+          value: "low"
+          mode: "default"  # set only if client didn't send one
+```
+
+Overrides apply to body, headers, and query parameters. Dot notation (`reasoning.effort`) is supported for nested body fields.
+
+## API key mapping
+
+Callers authenticate with proxy-issued keys. Each proxy key maps to an OpenAI API key in `api_keys.yaml`:
+
+```yaml
+keys:
+  - caller_key: "sk-your-caller-key-here"
+    openai_key: "sk-your-openai-key-here"
+    retry_buffer_ttl_seconds: 86400  # optional, default 86400 (24h)
+```
+
+This keeps real OpenAI keys off client machines and lets you rotate or revoke access per caller.
+
+## Quick start
+
+### Docker Compose
 
 ```bash
-# Copy example API keys file and add your keys
-cp api_keys.txt.example api_keys.txt
-
-# Start the server
+cp api_keys.yaml.example api_keys.yaml   # add your keys
 docker compose up --build
 ```
 
-### Local Development
+This starts the proxy and a Redis instance.
+
+### Local development
 
 ```bash
-# Install dependencies
 uv sync --all-extras
-
-# Install pre-commit hooks
-uv run pre-commit install
-
-# Copy example API keys file
-cp api_keys.txt.example api_keys.txt
-
-# Start the server
-uv run uvicorn skeleton_open_ai.main:app --reload
+cp api_keys.yaml.example api_keys.yaml
+uv run uvicorn openai_batch_proxy.main:app --reload
 ```
 
-## Configuration
+Redis must be running separately for batch_proxy mode.
 
-All configuration is in `config.yml`:
+## Usage
 
-```yaml
-# Server binding
-server:
-  host: "0.0.0.0"
-  port: 8000
-
-# Authentication
-auth:
-  api_keys_file: "api_keys.txt"
-
-# Available models
-models:
-  - default_workflow
-
-# CORS settings
-cors:
-  allow_origins:
-    - "*"
-```
-
-### API Key Management
-
-Add API keys to `api_keys.txt` (one per line, comments start with `#`):
-
-```bash
-# Generate a secure key
-python -c "import secrets; print('sk-' + secrets.token_hex(32))"
-```
-
-## API Reference
-
-### Health Check
+Health check (no auth required):
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Response: `{"status": "healthy"}`
-
-### List Models
-
-```bash
-curl http://localhost:8000/v1/models \
-  -H "Authorization: Bearer sk-your-api-key"
-```
-
-### Chat Completion
+Chat completion (use the proxy-issued `caller_key`, not the OpenAI key):
 
 ```bash
 curl http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer sk-your-api-key" \
+  -H "Authorization: Bearer sk-your-caller-key-here" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "default_workflow",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello"}]
   }'
 ```
 
-## Implementing Your Workflow
+## Configuration
 
-Edit `src/skeleton_open_ai/workflow.py` to implement your AI logic:
+All configuration lives in `config.yaml`. The server will not start if the file is missing or invalid.
 
-```python
-def run_workflow(messages: list[ChatMessage], model: str) -> str:
-    """
-    Implement your AI workflow here.
-    
-    Args:
-        messages: The conversation history from the request
-        model: The model name requested by the client
-        
-    Returns:
-        The assistant's response as a string
-    """
-    # Your implementation here
-    return "Your response"
-```
+| Environment variable | Default | Description |
+|---|---|---|
+| `CONFIG_PATH` | `config.yaml` | Path to configuration file |
+| `LOG_LEVEL` | `INFO` | Logging level |
 
 ## Development
 
-### Running Tests
-
 ```bash
-uv run pytest
+uv run pre-commit install          # install hooks
+uv run pytest                      # tests
+uv run ruff check src tests        # lint
+uv run ruff format src tests       # format
+uv run mypy src tests              # type check
 ```
-
-### Type Checking
-
-```bash
-uv run mypy src tests
-```
-
-### Linting
-
-```bash
-uv run ruff check src tests
-```
-
-### Format Code
-
-```bash
-uv run ruff format src tests
-```
-
-### Run All Pre-commit Hooks
-
-```bash
-uv run pre-commit run --all-files
-```
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONFIG_PATH` | `config.yml` | Path to configuration file |
-| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
-| `API_PORT` | `8000` | Port for Docker Compose |
 
 ## License
 
-MIT
+Apache-2.0

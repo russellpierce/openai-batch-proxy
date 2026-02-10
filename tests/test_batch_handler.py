@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skeleton_open_ai.batch.handler import BatchHandler, DisconnectedError
-from skeleton_open_ai.batch.openai_client import BatchFailedError
-from skeleton_open_ai.errors import BatchProxyError
-from skeleton_open_ai.key_config import ApiKeyEntry
+from openai_batch_proxy.batch.handler import BatchHandler, DisconnectedError
+from openai_batch_proxy.batch.openai_client import BatchFailedError
+from openai_batch_proxy.errors import BatchProxyError
+from openai_batch_proxy.key_config import ApiKeyEntry
 
 TEST_CALLER_KEY: Final = "sk-test-caller"
 TEST_OPENAI_KEY: Final = "sk-test-openai"

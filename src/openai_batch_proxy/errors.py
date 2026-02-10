@@ -1,5 +1,4 @@
 import logging
-import traceback
 from typing import Final
 
 from fastapi import FastAPI, Request
@@ -99,7 +98,10 @@ async def openai_compatible_error_handler(
     exc: OpenAICompatibleError,
 ) -> JSONResponse:
     """Handle OpenAI-compatible errors."""
-    logger.error(f"{exc.error_type}: {exc.message}\n{traceback.format_exc()}")
+    if exc.status_code >= 500:
+        logger.error("%s: %s", exc.error_type, exc.message, exc_info=True)
+    else:
+        logger.warning("%s: %s", exc.error_type, exc.message)
     return _create_error_response(
         status_code=exc.status_code,
         message=exc.message,
@@ -115,7 +117,7 @@ async def validation_error_handler(
     """Handle Pydantic validation errors in OpenAI format."""
     errors = exc.errors()
     message = "; ".join(f"{'.'.join(str(loc) for loc in e['loc'])}: {e['msg']}" for e in errors)
-    logger.error(f"Validation error: {message}\n{traceback.format_exc()}")
+    logger.warning("Validation error: %s", message)
     return _create_error_response(
         status_code=400,
         message=message,
@@ -124,7 +126,22 @@ async def validation_error_handler(
     )
 
 
+async def unhandled_error_handler(
+    _request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    """Catch-all for any unhandled exception."""
+    logger.error("Unhandled exception: %s", exc, exc_info=exc)
+    return _create_error_response(
+        status_code=500,
+        message="Internal server error",
+        error_type="internal_error",
+        error_code="internal_error",
+    )
+
+
 def register_error_handlers(app: FastAPI) -> None:
     """Register all error handlers with the FastAPI application."""
     app.add_exception_handler(OpenAICompatibleError, openai_compatible_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(Exception, unhandled_error_handler)  # type: ignore[arg-type]

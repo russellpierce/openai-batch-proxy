@@ -23,11 +23,24 @@ KNOWN_UNSUPPORTED: Final[frozenset[str]] = frozenset(
 )
 
 
+_STAGE_FIELDS: Final[tuple[str, ...]] = (
+    "created_at",
+    "in_progress_at",
+    "finalizing_at",
+    "completed_at",
+    "failed_at",
+    "expired_at",
+    "cancelling_at",
+    "cancelled_at",
+)
+
+
 class OpenAIBatchClient:
     """Wraps OpenAI SDK for batch-specific operations."""
 
     def __init__(self, api_key: str) -> None:
         self._client = AsyncOpenAI(api_key=api_key)
+        self._seen_stages: dict[str, set[str]] = {}
 
     async def submit_batch(
         self, endpoint: str, request_body: dict[str, object], custom_id: str
@@ -45,13 +58,25 @@ class OpenAIBatchClient:
             file=("batch_input.jsonl", io.BytesIO(jsonl_content.encode())),
             purpose="batch",
         )
+        logger.debug("Uploaded batch input file_id=%s", file.id)
 
         batch = await self._client.batches.create(
             input_file_id=file.id,
             endpoint=endpoint,  # type: ignore[arg-type]
             completion_window="24h",
         )
+        logger.debug("Created batch id=%s input_file=%s endpoint=%s",
+                      batch.id, file.id, endpoint)
         return batch.id
+
+    def _log_new_stages(self, batch_id: str, batch: object) -> None:
+        """Emit a debug log for each newly populated _at timestamp."""
+        seen = self._seen_stages.setdefault(batch_id, set())
+        for field in _STAGE_FIELDS:
+            ts = getattr(batch, field, None)
+            if ts is not None and field not in seen:
+                seen.add(field)
+                logger.debug("Batch %s stage %s = %s", batch_id, field, ts)
 
     @retry(
         stop=stop_after_attempt(2880),  # 30s * 2880 = 24h max
@@ -61,11 +86,14 @@ class OpenAIBatchClient:
     async def poll_batch(self, batch_id: str) -> dict[str, object]:
         """Poll until batch completes. Raises BatchNotReady to trigger retry."""
         batch = await self._client.batches.retrieve(batch_id)
+        self._log_new_stages(batch_id, batch)
         if batch.status == "completed":
+            self._seen_stages.pop(batch_id, None)
             if batch.output_file_id is None:
                 raise BatchFailedError(f"Batch {batch_id} completed but no output file")
             return await self._download_result(batch.output_file_id)
         if batch.status in ("failed", "expired", "cancelled"):
+            self._seen_stages.pop(batch_id, None)
             raise BatchFailedError(f"Batch {batch_id} status: {batch.status}")
         raise BatchNotReady(f"Batch {batch_id} status: {batch.status}")
 

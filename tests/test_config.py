@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from skeleton_open_ai.config import AppConfig, AuthConfig, ServerConfig, load_config
+from openai_batch_proxy.config import AppConfig, AuthConfig, ServerConfig, load_config
 
 
 def test_load_valid_config() -> None:
@@ -14,9 +14,6 @@ server:
   port: 8080
 auth:
   api_keys_file: "keys.txt"
-models:
-  - model1
-  - model2
 cors:
   allow_origins:
     - "*"
@@ -30,7 +27,6 @@ cors:
         assert config.server.host == "0.0.0.0"
         assert config.server.port == 8080
         assert config.auth.api_keys_file == "keys.txt"
-        assert config.models == ["model1", "model2"]
     finally:
         temp_path.unlink()
 
@@ -41,17 +37,16 @@ def test_load_config_missing_file() -> None:
         load_config("/nonexistent/path/config.yml")
 
 
-def test_config_empty_models_rejected() -> None:
-    """Test that empty models list is rejected."""
-    with pytest.raises(ValueError, match="models"):
-        AppConfig(auth=AuthConfig(api_keys_file="keys.txt"), models=[])
-
-
 def test_config_invalid_port_rejected() -> None:
     """Test that invalid port is rejected."""
     with pytest.raises(ValueError):
         AppConfig(
             server=ServerConfig(port=99999),
             auth=AuthConfig(api_keys_file="keys.txt"),
-            models=["model1"],
         )
+
+
+def test_config_routes_default_to_empty() -> None:
+    """Test that routes default to empty dict."""
+    config = AppConfig(auth=AuthConfig(api_keys_file="keys.txt"))
+    assert config.routes == {}

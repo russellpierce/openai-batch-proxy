@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from skeleton_open_ai.key_config import (
+from openai_batch_proxy.key_config import (
     ApiKeyEntry,
     ApiKeysConfig,
     build_key_lookup,
